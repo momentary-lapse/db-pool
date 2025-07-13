@@ -42,6 +42,7 @@ impl<T> ObjectPool<T> {
 }
 
 /// Reusable object wrapper
+#[derive(Clone)]
 pub struct Reusable<'a, T> {
     pool: &'a ObjectPool<T>,
     data: Option<T>,
