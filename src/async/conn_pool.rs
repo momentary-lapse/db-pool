@@ -44,7 +44,7 @@ impl<B: Backend> ReusableConnectionPool<B> {
     ) -> Result<Self, BackendError<B::BuildError, B::PoolError, B::ConnectionError, B::QueryError>>
     {
         let db_id = Uuid::new_v4();
-        let conn_pool = backend.create(db_id, true).await?;
+        let conn_pool = backend.create(db_id, false).await?;
 
         Ok(Self(ConnectionPool {
             backend,
