@@ -25,8 +25,8 @@ bb8 = { version = "0.8.6", optional = true }
 bb8-postgres = { version = "0.8.1", optional = true }
 deadpool = { version = "0.12.2", optional = true }
 deadpool-postgres = { version = "0.14.1", optional = true }
-diesel = { version = "2.2.11", optional = true }
-diesel-async = { version = "0.5.2", optional = true }
+diesel = { version = "2.3.3", optional = true }
+diesel-async = { version = "0.7.3", optional = true }
 futures = { version = "0.3.31", optional = true }
 mobc = { version = "0.8.5", optional = true }
 mobc-postgres = { version = "0.8.0", optional = true }
@@ -49,14 +49,14 @@ async-graphql = "7.0.17"
 async-graphql-poem = "7.0.17"
 bb8 = "0.8.6"
 bb8-postgres = "0.8.1"
-diesel = { version = "2.2.11", features = ["mysql", "postgres", "r2d2"] }
-diesel-async = { version = "0.5.2", features = [
+diesel = { version = "2.3.3", features = ["mysql", "postgres", "r2d2"] }
+diesel-async = { version = "0.7.3", features = [
     "async-connection-wrapper",
     "bb8",
     "mysql",
     "postgres",
 ] }
-diesel_migrations = { version = "2.2.0", features = ["postgres"] }
+diesel_migrations = { version = "2.3.0", features = ["postgres"] }
 dotenvy = "0.15.7"
 futures = "0.3.31"
 mysql = "25.0.1"
