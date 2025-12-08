@@ -156,9 +156,9 @@ impl PrivilegedPostgresConfig {
         } = self;
         let opt_str = Self::options_to_string(options);
         if let Some(password) = password {
-            format!("postgres://{username}:{password}@{host}:{port}/{opt_str}")
+            format!("postgres://{username}:{password}@{host}:{port}{opt_str}")
         } else {
-            format!("postgres://{username}@{host}:{port}/{opt_str}")
+            format!("postgres://{username}@{host}:{port}{opt_str}")
         }
     }
 
