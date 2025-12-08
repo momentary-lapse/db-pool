@@ -130,6 +130,21 @@ impl PrivilegedPostgresConfig {
         }
     }
 
+    /// Sets options for connection string
+    /// # Example
+    /// ```
+    /// # use db_pool::PrivilegedPostgresConfig;
+    /// #
+    /// let config = PrivilegedPostgresConfig::new().options([("option1", "value1"), ("option2", "value2")]);
+    /// ```
+    #[must_use]
+    pub fn options(self, value: Vec<(String, String)>) -> Self {
+        Self {
+            options: value,
+            ..self
+        }
+    }
+
     pub(crate) fn default_connection_url(&self) -> String {
         let Self {
             username,
