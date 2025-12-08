@@ -4,6 +4,7 @@ pub struct PrivilegedPostgresConfig {
     pub(crate) password: Option<String>,
     pub(crate) host: String,
     pub(crate) port: u16,
+    pub(crate) options: Vec<(String, String)>,
 }
 
 impl PrivilegedPostgresConfig {
@@ -11,6 +12,7 @@ impl PrivilegedPostgresConfig {
     const DEFAULT_PASSWORD: Option<String> = None;
     const DEFAULT_HOST: &'static str = "localhost";
     const DEFAULT_PORT: u16 = 5432;
+    const DEFAULT_OPTIONS: Vec<(String, String)> = Vec::new();
 
     /// Creates a new privileged Postgres configuration with defaults
     /// # Example
@@ -31,6 +33,7 @@ impl PrivilegedPostgresConfig {
             password: Self::DEFAULT_PASSWORD,
             host: Self::DEFAULT_HOST.to_owned(),
             port: Self::DEFAULT_PORT,
+            options: Self::DEFAULT_OPTIONS.clone(),
         }
     }
 
@@ -54,12 +57,14 @@ impl PrivilegedPostgresConfig {
         let port = env::var("POSTGRES_PORT")
             .map_or(Ok(Self::DEFAULT_PORT), |port| port.parse())
             .map_err(Error::InvalidPort)?;
+        let options = Self::options_from_string(env::var("POSTGRES_OPTIONS").ok());
 
         Ok(Self {
             username,
             password,
             host,
             port,
+            options
         })
     }
 
@@ -131,11 +136,13 @@ impl PrivilegedPostgresConfig {
             password,
             host,
             port,
+            options,
         } = self;
+        let opt_str = Self::options_to_string(options);
         if let Some(password) = password {
-            format!("postgres://{username}:{password}@{host}:{port}")
+            format!("postgres://{username}:{password}@{host}:{port}/{opt_str}")
         } else {
-            format!("postgres://{username}@{host}:{port}")
+            format!("postgres://{username}@{host}:{port}/{opt_str}")
         }
     }
 
@@ -145,11 +152,14 @@ impl PrivilegedPostgresConfig {
             password,
             host,
             port,
+            options,
         } = self;
+
+        let opt_str = Self::options_to_string(options);
         if let Some(password) = password {
-            format!("postgres://{username}:{password}@{host}:{port}/{db_name}")
+            format!("postgres://{username}:{password}@{host}:{port}/{db_name}{opt_str}")
         } else {
-            format!("postgres://{username}@{host}:{port}/{db_name}")
+            format!("postgres://{username}@{host}:{port}/{db_name}{opt_str}")
         }
     }
 
@@ -159,12 +169,49 @@ impl PrivilegedPostgresConfig {
         password: Option<&str>,
         db_name: &str,
     ) -> String {
-        let Self { host, port, .. } = self;
+        let Self { host, port, options, .. } = self;
+        let opt_str = Self::options_to_string(options);
         if let Some(password) = password {
-            format!("postgres://{username}:{password}@{host}:{port}/{db_name}")
+            format!("postgres://{username}:{password}@{host}:{port}/{db_name}{opt_str}")
         } else {
-            format!("postgres://{username}@{host}:{port}/{db_name}")
+            format!("postgres://{username}@{host}:{port}/{db_name}{opt_str}")
         }
+    }
+
+    pub(crate) fn options_to_string(options: &Vec<(String, String)>) -> String {
+        let query: String = options
+          .iter()
+          .map(|(k, v)| format!("{}={}", k, v))
+          .collect::<Vec<_>>()
+          .join("&");
+        if !query.is_empty() {
+            format!("?{}", query)
+        } else {
+            String::new()
+        }
+    }
+
+    pub(crate) fn options_from_string(os: Option<String>) -> Vec<(String, String)> {
+        let s = match os {
+            Some(s) => s,
+            None => return Vec::new(),
+        };
+        let s = s.strip_prefix('?').unwrap_or(&s);
+        if s.is_empty() {
+            return Vec::new();
+        }
+        s.split('&')
+          .filter_map(|pair| {
+              let mut parts = pair.splitn(2, '=');
+              let key = parts.next()?.to_string();
+              let value = parts.next()?.to_string();
+              if key.is_empty() {
+                  None
+              } else {
+                  Some((key, value))
+              }
+          })
+          .collect()
     }
 }
 
@@ -187,6 +234,7 @@ impl From<PrivilegedPostgresConfig> for r2d2_postgres::postgres::Config {
             password,
             host,
             port,
+            ..
         } = value;
 
         let mut config = Self::new();
@@ -212,12 +260,14 @@ impl From<PrivilegedPostgresConfig> for sqlx::postgres::PgConnectOptions {
             password,
             host,
             port,
+            options,
         } = value;
 
         let opts = Self::new()
             .username(username.as_str())
             .host(host.as_str())
-            .port(port);
+            .port(port)
+            .options(options);
 
         if let Some(password) = password {
             opts.password(password.as_str())
@@ -235,6 +285,7 @@ impl From<PrivilegedPostgresConfig> for tokio_postgres::Config {
             password,
             host,
             port,
+            ..
         } = value;
 
         let mut config = Self::new();
