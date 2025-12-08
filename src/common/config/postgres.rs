@@ -135,7 +135,8 @@ impl PrivilegedPostgresConfig {
     /// ```
     /// # use db_pool::PrivilegedPostgresConfig;
     /// #
-    /// let config = PrivilegedPostgresConfig::new().options([("option1", "value1"), ("option2", "value2")]);
+    /// let config = PrivilegedPostgresConfig::new().options(Vec::from([("option1".to_string(), "value1".to_string()),
+    ///   ("option2".to_string(), "value2".to_string())]));
     /// ```
     #[must_use]
     pub fn options(self, value: Vec<(String, String)>) -> Self {
