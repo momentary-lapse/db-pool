@@ -233,6 +233,10 @@ impl PrivilegedPostgresConfig {
     }
 
     fn options_to_segment(options: &Vec<(String, String)>) -> String {
+        if options.is_empty() {
+            return String::new();
+        }
+
         let options_merge = options
           .iter()
           .map(|(k, v)| format!("{}={}", k, v))
@@ -248,7 +252,7 @@ impl PrivilegedPostgresConfig {
           .collect::<Vec<String>>()
           .join("%20");
 
-        format!("options={options_segments}")
+        format!("?options={options_segments}")
     }
 }
 
@@ -349,7 +353,7 @@ fn test_default_connection_url_with_options() {
     let url = config.default_connection_url();
     assert_eq!(
         url,
-        "postgres://postgres@localhost:5432options=-c%20geqo%3Doff%20-c%20statement_timeout%3D5min"
+        "postgres://postgres@localhost:5432?options=-c%20geqo%3Doff%20-c%20statement_timeout%3D5min"
     );
 }
 
