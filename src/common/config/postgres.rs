@@ -1,3 +1,5 @@
+use urlencoding::encode;
+
 /// Privileged Postgres configuration
 pub struct PrivilegedPostgresConfig {
     pub(crate) username: String,
@@ -154,7 +156,7 @@ impl PrivilegedPostgresConfig {
             port,
             options,
         } = self;
-        let opt_str = Self::options_to_string(options);
+        let opt_str = Self::options_to_segment(options);
         if let Some(password) = password {
             format!("postgres://{username}:{password}@{host}:{port}{opt_str}")
         } else {
@@ -171,7 +173,7 @@ impl PrivilegedPostgresConfig {
             options,
         } = self;
 
-        let opt_str = Self::options_to_string(options);
+        let opt_str = Self::options_to_segment(options);
         if let Some(password) = password {
             format!("postgres://{username}:{password}@{host}:{port}/{db_name}{opt_str}")
         } else {
@@ -186,7 +188,7 @@ impl PrivilegedPostgresConfig {
         db_name: &str,
     ) -> String {
         let Self { host, port, options, .. } = self;
-        let opt_str = Self::options_to_string(options);
+        let opt_str = Self::options_to_segment(options);
         if let Some(password) = password {
             format!("postgres://{username}:{password}@{host}:{port}/{db_name}{opt_str}")
         } else {
@@ -228,6 +230,25 @@ impl PrivilegedPostgresConfig {
               }
           })
           .collect()
+    }
+
+    fn options_to_segment(options: &Vec<(String, String)>) -> String {
+        let options_merge = options
+          .iter()
+          .map(|(k, v)| format!("{}={}", k, v))
+          .collect::<Vec<_>>();
+
+        // Create the connection uri portion
+        let options_segments = options_merge
+          .iter()
+          // The equal signs need to be encoded, since the url set_query doesn't do them,
+          // and postgres requires them to be %3D
+          // https://www.postgresql.org/docs/current/libpq-connect.html#LIBPQ-CONNSTRING
+          .map(|o| format!("-c%20{}", encode(o)))
+          .collect::<Vec<String>>()
+          .join("%20");
+
+        format!("options={options_segments}")
     }
 }
 
@@ -318,3 +339,17 @@ impl From<PrivilegedPostgresConfig> for tokio_postgres::Config {
         config
     }
 }
+
+#[test]
+fn test_default_connection_url_with_options() {
+    let config = PrivilegedPostgresConfig::new().options(vec![
+        ("geqo".to_string(), "off".to_string()),
+        ("statement_timeout".to_string(), "5min".to_string()),
+    ]);
+    let url = config.default_connection_url();
+    assert_eq!(
+        url,
+        "postgres://postgres@localhost:5432options=-c%20geqo%3Doff%20-c%20statement_timeout%3D5min"
+    );
+}
+
