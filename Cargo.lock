@@ -758,6 +758,7 @@ dependencies = [
  "tokio-postgres",
  "tokio-shared-rt",
  "tokio-test",
+ "url",
  "urlencoding",
  "uuid",
 ]
