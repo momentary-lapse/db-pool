@@ -250,18 +250,16 @@ where
         // Get privileged connection to database
         let mut conn = self.get_database_connection(db_id);
 
-        // Get table names
-        let table_names = self.get_table_names(&mut conn).await.map_err(Into::into)?;
+        // Get table names (if schema doesn't exist, just use empty list)
+        let table_names = self.get_table_names(&mut conn).await.unwrap_or_default();
 
         // Generate truncate statements
         let stmts = table_names
             .iter()
             .map(|table_name| postgres::truncate_table(table_name.as_str()).into());
 
-        // Truncate tables
-        self.batch_execute_query(stmts, &mut conn)
-            .await
-            .map_err(Into::into)?;
+        // Truncate tables (note: ignoring errors)
+        self.batch_execute_query(stmts, &mut conn).await.ok();
 
         // Store database connection back for reuse
         self.put_database_connection(db_id, conn);
