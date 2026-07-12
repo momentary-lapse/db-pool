@@ -159,12 +159,40 @@ impl<P: DieselPoolAssociation<AsyncPgConnection>> DieselAsyncPostgresBackend<P> 
     ///
     /// When `value` is `true`, `excluded_tables` can be used to protect specific tables (e.g.
     /// migration-seeded lookup/reference tables) from being truncated, while all other tables
-    /// are still cleaned normally between tests.
+    /// are still cleaned normally between tests. Pass an empty array to exclude nothing.
+    /// # Example
+    /// ```no_run
+    /// use bb8::Pool;
+    /// use db_pool::{
+    ///     r#async::{DieselAsyncPostgresBackend, DieselBb8},
+    ///     postgres::PrivilegedPostgresConfig,
+    /// };
+    /// use dotenvy::dotenv;
+    ///
+    /// async fn f() {
+    ///     dotenv().ok();
+    ///
+    ///     let config = PrivilegedPostgresConfig::from_env().unwrap();
+    ///
+    ///     let backend = DieselAsyncPostgresBackend::<DieselBb8>::new(
+    ///         config,
+    ///         |_| Pool::builder().max_size(10),
+    ///         |_| Pool::builder().max_size(2),
+    ///         None,
+    ///         move |conn| Box::pin(async { Some(conn) }),
+    ///     )
+    ///     .await
+    ///     .unwrap()
+    ///     .clean_tables(true, ["__excluded_table", "__diesel_schema_migrations"]);
+    /// }
+    ///
+    /// tokio_test::block_on(f());
+    /// ```
     #[must_use]
-    pub fn clean_tables(self, value: bool, excluded_tables: Option<Vec<String>>) -> Self {
+    pub fn clean_tables<const N: usize>(self, value: bool, excluded_tables: [&str; N]) -> Self {
         Self {
             clean_tables_flag: value,
-            excluded_tables: excluded_tables.unwrap_or_default(),
+            excluded_tables: excluded_tables.into_iter().map(str::to_owned).collect(),
             ..self
         }
     }
